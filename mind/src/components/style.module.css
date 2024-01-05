@@ -1,0 +1,6 @@
+.asd {
+	color: red;
+	&:hover {
+		color: black;
+	}
+}

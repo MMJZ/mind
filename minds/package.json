@@ -1,0 +1,23 @@
+{
+	"scripts": {
+		"build": "tsc",
+		"serve": "node dist/app.js",
+		"lint": "eslint .",
+		"prettier": "prettier -w .",
+		"lint:fix": "eslint --fix ."
+	},
+	"devDependencies": {
+		"@typescript-eslint/eslint-plugin": "^6.16.0",
+		"@typescript-eslint/parser": "^6.16.0",
+		"eslint": "^8.56.0",
+		"prettier": "^3.1.1",
+		"typescript": "^5.3.3"
+	},
+	"dependencies": {
+		"socket.io": "^4.7.2"
+	},
+	"prettier": {
+		"useTabs": true,
+		"singleQuote": true
+	}
+}
