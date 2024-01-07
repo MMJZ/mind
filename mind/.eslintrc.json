@@ -19,6 +19,7 @@
 		"no-tabs": "off",
 		"jest/no-deprecated-functions": "off",
 		"@typescript-eslint/space-before-function-paren": "off",
-		"@typescript-eslint/comma-dangle": "off"
+		"@typescript-eslint/comma-dangle": "off",
+		"@typescript-eslint/member-delimiter-style": "off"
 	}
 }

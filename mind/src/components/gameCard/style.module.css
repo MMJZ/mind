@@ -1,0 +1,39 @@
+@import url('https://fonts.googleapis.com/css2?family=Rubik+Scribble&display=swap&text=1234567890.');
+@import url('https://fonts.googleapis.com/css2?family=Rubik+Distressed&display=swap&text=1234567890.');
+
+.wrapper {
+  background-image: url('https://images.unsplash.com/photo-1516339901601-2e1b62dc0c45?q=80&w=3071&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D');
+  background-position: center;
+  background-size: cover;
+  color: white;
+  display: inline-flex;
+  flex-direction: column;
+  padding: 0.1em 0.3em;
+  border-radius: 0.4em;
+  justify-content: space-between;
+  width: 5em;
+  height: 8em;
+  text-shadow: 0 0 0.2em black;
+  box-shadow: 0 0 0.2em 0.02em rgba(255, 255, 255, 0.15) inset;
+  /* transform: rotate3d(1, 1, 1, 10deg); */
+}
+
+.edgeRow {
+  display: flex;
+  font-family: 'Rubik Scribble';
+  justify-content: space-between;
+  font-size: 0.9em;
+  /* span {
+    font-size: 1em;
+  } */
+  &:last-child {
+    transform: rotate(180deg);
+  }
+}
+
+.main {
+  text-align: center;
+  font-family: 'Rubik Distressed';
+  font-size: 2em;
+}
+

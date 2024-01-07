@@ -3,10 +3,9 @@ import {
 	ClientToServerEvents,
 	InterServerEvents,
 	PlayerPosition,
-	Room,
 	ServerToClientEvents,
-	SocketData,
 } from './model';
+import { Room, SocketData } from './room';
 
 const io = new Server<
 	ClientToServerEvents,
@@ -51,10 +50,14 @@ io.on('connection', async (socket) => {
 		cards: [],
 	};
 
-	socket.on('disconnect', async (reason) => {
-		console.log('closed!', reason);
-		console.log('connected:', (await io.fetchSockets()).length);
-		return 2;
+	socket.on('disconnect', async (reason: string) => {
+		const room = socket.data.room;
+		if(room){
+			room.leave(socket);
+			if(room.players.length === 0){
+				rooms.delete(room.name);
+			}
+		}
 	});
 
 	socket.on('joinRoom', (name: string) => {
@@ -93,6 +96,12 @@ io.on('connection', async (socket) => {
 	socket.on('playCard', async () => {
 		if (socket.data.room) {
 			await socket.data.room.cardPlayed(socket);
+		}
+	});
+
+	socket.on('roundStart', async() => {
+		if(socket.data.room){
+			await socket.data.room.startRound(socket);
 		}
 	});
 });
