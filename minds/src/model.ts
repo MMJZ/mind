@@ -1,16 +1,23 @@
+import { Server, Socket } from 'socket.io';
+import { Merge } from './util';
+
 type ClientServerEvents = [
 	{
 		client: {
 			joinRoom: (name: string) => void;
 		};
 		server: {
-			joinRoomSuccess: (
-				round: number,
-				lives: number,
-				stars: number,
-				players: [string, string][],
-			) => void;
+			joinRoomSuccess: () => void;
 			joinRoomFailure: (error: string) => void;
+		};
+	},
+	{
+		client: {
+			leaveRoom: () => void;
+		};
+		server: {
+			leaveRoomSuccess: () => void;
+			leaveRoomFailure: (error: string) => void;
 		};
 	},
 	{
@@ -24,31 +31,31 @@ type ClientServerEvents = [
 	},
 	{
 		client: {
-			setPosition: (position: PlayerPosition) => void;
+			roundStart: () => void;
+		};
+		server: {
+			roundStartSuccess: (cards: number[]) => void;
+			roundStartFailure: (error: string) => void;
+		};
+	},
+	{
+		client: {
 			setFocus: (focus: boolean) => void;
 		};
 		server: {
-			setPositions: (positions: PlayerPosition[]) => void;
-			setFocusses: (focusses: PlayerFocus[]) => void;
+			setRoomPosition: (position: RoomPosition) => void;
+			setPlayerFocusses: (focusses: PlayerFocus[]) => void;
 			focusStart: (lives: number, stars: number) => void;
-			star: (cards: PlayerCard[], newStars: number) => void;
-			bust: (revealed: PlayerCard[], newLives: number) => void;
 		};
 	},
-  {
-    client: {
-      roundStart: () => void;
-    },
-    server: {
-			roundStartSuccess: (
-				round: number,
-				lives: number,
-				stars: number,
-				cards: number[],
-			) => void;
-      roundStartFailure: (error: string) => void;
-    }
-  },
+	{
+		client: {
+			setPosition: (position: PlayerPosition) => void;
+		};
+		server: {
+			setPlayerPositions: (positions: PlayerPosition[]) => void;
+		};
+	},
 	{
 		client: {
 			playCard: () => void;
@@ -56,10 +63,19 @@ type ClientServerEvents = [
 		server: {
 			playCardSuccess: (play: PlayerCard) => void;
 			playCardFailure: (error: string) => void;
-			cardPlayed: (value: number, left: [string, number][]) => void;
+			cardPlayed: (value: number, left: Map<string, number>) => void;
+			star: (cards: PlayerCard[], newStars: number) => void;
+			bust: (revealed: PlayerCard[], newLives: number) => void;
 		};
 	},
 ];
+
+export interface RoomPosition {
+	round: number;
+	lives: number;
+	stars: number;
+	players: Map<string, string>;
+}
 
 export interface PlayerPosition {
 	x: number;
@@ -79,22 +95,29 @@ export interface PlayerFocus {
 
 export type ServerToClientEvents = Merge<ClientServerEvents[number]['server']>;
 export type ClientToServerEvents = Merge<ClientServerEvents[number]['client']>;
-
-type AllKeys<T> = T extends object ? keyof T : never;
-
-type PickType<T, K extends keyof T> = T extends { [k in K]?: object }
-	? T[K]
-	: undefined;
-
-type Merge<T extends object> = {
-	[k in AllKeys<T>]: PickTypeOf<T, k>;
-};
-
-type PickTypeOf<T, K extends string | number | symbol> = K extends AllKeys<T>
-	? PickType<T, K>
-	: never;
-
 export type InterServerEvents = Record<string, never>;
+
+export interface SocketData {
+	room?: IRoom;
+	name: string;
+	position: PlayerPosition;
+	focussed: boolean;
+	cards: number[];
+}
+
+export type MSocket = Socket<
+	ClientToServerEvents,
+	ServerToClientEvents,
+	InterServerEvents,
+	SocketData
+>;
+
+export type MServer = Server<
+	ClientToServerEvents,
+	ServerToClientEvents,
+	InterServerEvents,
+	SocketData
+>;
 
 export type RoomState =
 	| 'lobby' // players leave and join; can set player names; can set ready; return here after round competion
@@ -103,3 +126,17 @@ export type RoomState =
 	| 'inGame' // cards being played
 	| 'star' // star revealed; waiting for all players to ack
 	| 'bust'; // bust revealed; waiting for all players to ack
+
+export interface IRoom {
+	name: string;
+	players: MSocket[];
+	roomState: RoomState;
+	join(socket: MSocket): void;
+	leave(socket: MSocket): void;
+	sendRoomPosition(): void;
+	close(): void;
+	startRound(socket: MSocket): Promise<void>;
+	playerSetFocus(socket: MSocket, focus: boolean | unknown): Promise<void>;
+	playerSetPosition(socket: MSocket, position: PlayerPosition): Promise<void>;
+	cardPlayed(socket: MSocket): Promise<void>;
+}

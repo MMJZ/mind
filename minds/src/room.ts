@@ -1,35 +1,10 @@
-import { Socket, Server } from 'socket.io';
 import {
 	PlayerPosition,
-	ClientToServerEvents,
-	ServerToClientEvents,
-	InterServerEvents,
 	RoomState,
 	PlayerCard,
+	MSocket,
+	MServer,
 } from './model';
-import { tuple } from './util';
-
-export interface SocketData {
-	room?: Room;
-	name: string;
-	position: PlayerPosition;
-	focussed: boolean;
-	cards: number[];
-}
-
-export type MSocket = Socket<
-	ClientToServerEvents,
-	ServerToClientEvents,
-	InterServerEvents,
-	SocketData
->;
-
-export type MServer = Server<
-	ClientToServerEvents,
-	ServerToClientEvents,
-	InterServerEvents,
-	SocketData
->;
 
 export class Room {
 	private _roomState: RoomState = 'lobby';
@@ -51,11 +26,11 @@ export class Room {
 		return this._roomState;
 	}
 
-  public get name() {
-    return this._name;
-  }
+	public get name() {
+		return this._name;
+	}
 
-	join(socket: MSocket) {
+	join(socket: MSocket): void {
 		if (this.roomState !== 'lobby') {
 			socket.emit('joinRoomFailure', 'room already in game');
 			return;
@@ -64,50 +39,59 @@ export class Room {
 		socket.data.room = this;
 		socket.join(this.name);
 		this._players.push(socket);
-		socket.emit(
-			'joinRoomSuccess',
-			this.round,
-			this.lives,
-			this.stars,
-			this.players.map((p) => tuple(p.id, p.data.name)),
-		);
+		socket.emit('joinRoomSuccess');
+		this.sendRoomPosition();
 	}
 
-  leave(socket: MSocket) {
-    const index = this.players.indexOf(socket);
-    if(index > -1){
-      this.players.splice(index, 1);
-    }
-  }
+	leave(socket: MSocket): void {
+		const index = this.players.indexOf(socket);
+		if (index > -1) {
+			this.players.splice(index, 1);
+		}
+		socket.emit('leaveRoomSuccess');
+		this.sendRoomPosition();
+	}
 
-  close() {
+	sendRoomPosition(): void {
+		this.io.to(this.name).emit('setRoomPosition', {
+			round: this.round,
+			lives: this.lives,
+			stars: this.stars,
+			players: new Map(this.players.map((p) => [p.id, p.data.name])),
+		});
+	}
 
-  }
+	close(): void {}
 
-	async startRound(socket: MSocket) {
+	async startRound(socket: MSocket): Promise<void> {
 		if (this.roomState !== 'lobby') {
-      socket.emit('roundStartFailure', 'not in lobby');
+			socket.emit('roundStartFailure', 'not in lobby');
 			return;
 		}
 		if (this.players.length < 2) {
-      socket.emit('roundStartFailure', 'not enough players');
+			socket.emit('roundStartFailure', 'not enough players');
 			return;
 		}
 		this._roomState = 'roundStartPending';
-		await Promise.all(
-			this.players.map((player) => {
-				return player.emitWithAck(
-					'roundStartSuccess',
-					this.round,
-					this.lives,
-					this.stars,
-				);
-			}),
-		);
+
+		const deck = [...Array(101).keys()].slice(1);
+		for (let i = deck.length - 1; i > 0; i--) {
+			const j = Math.floor(Math.random() * (i + 1));
+			const temp = deck[i];
+			deck[i] = deck[j];
+			deck[j] = temp;
+		}
+
+		let marker = 0;
+		for(const player of this.players){
+			player.emit('roundStartSuccess', deck.slice(marker, this.round));
+			marker += this.round;
+		}
+
 		this._roomState = 'awaitingFocus';
 	}
 
-	async playerSetFocus(socket: MSocket, focus: boolean | unknown) {
+	async playerSetFocus(socket: MSocket, focus: boolean | unknown): Promise<void> {
 		if (this.roomState !== 'awaitingFocus') {
 			return;
 		}
@@ -118,14 +102,14 @@ export class Room {
 		}
 	}
 
-	async playerSetPosition(socket: MSocket, position: PlayerPosition) {
+	async playerSetPosition(socket: MSocket, position: PlayerPosition): Promise<void> {
 		if (this.roomState !== 'inGame') {
 			return;
 		}
 		socket.data.position = position;
 		if (
-			this.stars > 0 &&
 			position.star &&
+			this.stars > 0 &&
 			this.players.every((p) => p.data.position.star)
 		) {
 			const revealed = this.players.flatMap<PlayerCard>((player) => {
@@ -146,17 +130,17 @@ export class Room {
 		}
 	}
 
-	async cardPlayed(socket: MSocket) {
+	async cardPlayed(socket: MSocket): Promise<void> {
 		if (this.roomState !== 'inGame') {
 			socket.emit('playCardFailure', 'not in game');
 			return;
 		}
 		const [played, ...rest] = socket.data.cards;
 
-    if(played === undefined){
+		if (played === undefined) {
 			socket.emit('playCardFailure', 'no cards left');
 			return;
-    }
+		}
 
 		socket.data.cards = rest;
 		const allBustCards = this.players.reduce<PlayerCard[]>((acc, cur) => {

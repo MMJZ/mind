@@ -4,8 +4,9 @@ import {
 	InterServerEvents,
 	PlayerPosition,
 	ServerToClientEvents,
+	SocketData,
 } from './model';
-import { Room, SocketData } from './room';
+import { Room } from './room';
 
 const io = new Server<
 	ClientToServerEvents,
@@ -19,17 +20,6 @@ const io = new Server<
 });
 
 const maxRooms = 1;
-
-// function deal(players: number, each: number): number[][] {
-// 	const deck = [...Array(101).keys()].slice(1);
-// 	for (let i = deck.length - 1; i > 0; i--) {
-// 		const j = Math.floor(Math.random() * (i + 1));
-// 		const temp = deck[i];
-// 		deck[i] = deck[j];
-// 		deck[j] = temp;
-// 	}
-
-// }
 
 const rooms = new Map<string, Room>();
 
@@ -52,33 +42,44 @@ io.on('connection', async (socket) => {
 
 	socket.on('disconnect', async (reason: string) => {
 		const room = socket.data.room;
-		if(room){
+		if (room) {
 			room.leave(socket);
-			if(room.players.length === 0){
+			if (room.players.length === 0) {
 				rooms.delete(room.name);
 			}
 		}
+		console.log(reason);
 	});
 
 	socket.on('joinRoom', (name: string) => {
 		if (socket.data.room) {
 			return socket.emit('joinRoomFailure', 'already in a room');
 		}
-		let room = rooms.get(name);
-		if (!room) {
-			if (rooms.size < maxRooms) {
-				room = new Room(io, name);
-				rooms.set(name, room);
-			} else {
-				socket.emit('joinRoomFailure', 'room limit reached');
-				return;
-			}
+		const room = rooms.get(name);
+		if (room) {
+			room.join(socket);
+			return;
 		}
-		room.join(socket);
+		if (rooms.size < maxRooms) {
+			const newRoom = new Room(io, name);
+			rooms.set(name, newRoom);
+			newRoom.join(socket);
+		} else {
+			socket.emit('joinRoomFailure', 'room limit reached');
+			return;
+		}
+	});
+
+	socket.on('leaveRoom', () => {
+		if (!socket.data.room) {
+			return socket.emit('leaveRoomFailure', 'not in a room');
+		}
+		socket.data.room.leave(socket);
 	});
 
 	socket.on('setName', (name: string) => {
 		socket.data.name = name;
+		socket.data.room?.sendRoomPosition();
 	});
 
 	socket.on('setFocus', async (focus: boolean | unknown) => {
@@ -99,8 +100,8 @@ io.on('connection', async (socket) => {
 		}
 	});
 
-	socket.on('roundStart', async() => {
-		if(socket.data.room){
+	socket.on('roundStart', async () => {
+		if (socket.data.room) {
 			await socket.data.room.startRound(socket);
 		}
 	});
