@@ -1,23 +1,11 @@
-import { Server } from 'socket.io';
-import {
-	ClientToServerEvents,
-	InterServerEvents,
-	PlayerPosition,
-	ServerToClientEvents,
-	SocketData,
-} from './model';
 import { Room } from './room';
+import {
+	PlayerPosition,
+	type MServer,
+	createServer
+} from 'shared';
 
-const io = new Server<
-	ClientToServerEvents,
-	ServerToClientEvents,
-	InterServerEvents,
-	SocketData
->(3000, {
-	cors: {
-		origin: ['http://localhost:5173', 'http://192.168.0.8:5173'],
-	},
-});
+const io: MServer = createServer();
 
 const maxRooms = 1;
 

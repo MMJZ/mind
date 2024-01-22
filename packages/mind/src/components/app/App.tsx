@@ -29,6 +29,18 @@ export function App(): JSX.Element {
 			console.log('disconnected!');
 		}
 
+		function onJoinRoomSuccess(
+			round: number,
+			lives: number,
+			stars: number,
+			players: Array<[string, string]>,
+		): void {
+			setRound(round);
+			setLives(lives);
+			setStars(stars);
+			setPlayers
+		}
+
 		socket.on('connect', onConnect);
 		socket.on('disconnect', onDisconnect);
 
@@ -36,7 +48,7 @@ export function App(): JSX.Element {
 			socket.off('connect', onConnect);
 			socket.off('disconnect', onDisconnect);
 		};
-	}, []);
+	}, [setIsConnected]);
 
 	useEffect(() => {
 		alert(isConnected);
@@ -49,13 +61,17 @@ export function App(): JSX.Element {
 	const [roomJoinInFlight, setRoomJoinInFlight] = useState(false);
 	const [playCardInFlight, setPlayCardInFlight] = useState(false);
 
+	const [round, setRound] = useState<number | undefined>(undefined);
+	const [lives, setLives] = useState<number | undefined>(undefined);
+	const [stars, setStars] = useState<number | undefined>(undefined);
+
 	function updateName(candidateName: string): void {
 		socket.emit('setName', candidateName);
 		setNameUpdateInFlight(true);
 	}
 
 	function joinRoom(candidateRoom: string): void {
-		joinRoom
+		joinRoom;
 	}
 
 	return (

@@ -1,10 +1,10 @@
 import {
-	PlayerPosition,
-	RoomState,
+	type MServer,
+	type MSocket,
 	PlayerCard,
-	MSocket,
-	MServer,
-} from './model';
+	PlayerPosition,
+	type RoomState,
+} from 'shared';
 
 export class Room {
 	private _roomState: RoomState = 'lobby';
@@ -83,26 +83,34 @@ export class Room {
 		}
 
 		let marker = 0;
-		for(const player of this.players){
-			player.emit('roundStartSuccess', deck.slice(marker, this.round));
+		for (const player of this.players) {
+			const cards = deck.slice(marker, this.round);
+			player.emit('roundStartSuccess', cards);
+			player.data.cards = cards;
 			marker += this.round;
 		}
 
 		this._roomState = 'awaitingFocus';
 	}
 
-	async playerSetFocus(socket: MSocket, focus: boolean | unknown): Promise<void> {
+	async playerSetFocus(
+		socket: MSocket,
+		focus: boolean | unknown,
+	): Promise<void> {
 		if (this.roomState !== 'awaitingFocus') {
 			return;
 		}
 		socket.data.focussed = focus === true;
 		if (focus === true && this.players.every((p) => p.data.focussed)) {
-			await this.io.to(this.name).emitWithAck('focusStart', this.lives);
+			this.io.to(this.name).emit('focusStart');
 			this._roomState = 'inGame';
 		}
 	}
 
-	async playerSetPosition(socket: MSocket, position: PlayerPosition): Promise<void> {
+	async playerSetPosition(
+		socket: MSocket,
+		position: PlayerPosition,
+	): Promise<void> {
 		if (this.roomState !== 'inGame') {
 			return;
 		}
@@ -125,7 +133,8 @@ export class Room {
 					: [];
 			});
 			this._roomState = 'star';
-			await this.io.to(this.name).emitWithAck('star', revealed);
+			this.stars -= 1;
+			this.io.to(this.name).emit('star', revealed, this.stars);
 			this._roomState = 'awaitingFocus';
 		}
 	}
@@ -158,9 +167,9 @@ export class Room {
 		}, []);
 		if (allBustCards.length > 0) {
 			this._roomState = 'bust';
-			await this.io.to(this.name).emitWithAck('bust', allBustCards);
-
 			this.lives -= 1;
+			this.io.to(this.name).emit('bust', allBustCards, this.lives);
+
 			if (this.lives > 0) {
 				this._roomState = 'awaitingFocus';
 			} else {

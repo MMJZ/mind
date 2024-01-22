@@ -1,0 +1,8 @@
+{
+  "name": "the-mind",
+  "workspaces": {
+    "packages": [
+      "packages/*"
+    ]
+  }
+}

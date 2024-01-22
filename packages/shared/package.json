@@ -1,7 +1,11 @@
 {
+	"name": "shared",
+	"type": "module",
+	"main": "dist/index.js",
+	"types": "dist/index.d.ts",
 	"scripts": {
 		"build": "tsc",
-		"serve": "node dist/app.js",
+		"watch": "tsc -w",
 		"lint": "eslint .",
 		"prettier": "prettier -w .",
 		"lint:fix": "eslint --fix ."
