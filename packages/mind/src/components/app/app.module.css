@@ -1,0 +1,40 @@
+.wrapper {
+	display: flex;
+	align-items: stretch;
+	min-height: 100vh;
+	&>nav {
+		background: #111;
+	}
+	&>main {
+		flex: 1;
+		box-shadow: -2px 0 10px rgba(0, 0, 0, 0.3);
+		background: #444;
+	}
+	font-family: 'Noto Sans', sans-serif;
+}
+
+nav {
+	color: white;
+	padding: 10px;
+	justify-content: space-between;
+	font-weight: 900;
+	font-size: 1.1em;
+	&>div>div {
+		&:nth-child(2) {
+			font-size: 1.4em;
+		}
+	}
+}
+
+.statusButton {
+	cursor: pointer;
+	&:hover {
+		text-decoration: underline;
+	}
+}
+
+.card {
+	font-size: 2em;
+	display: flex;
+	justify-content: space-around;
+}

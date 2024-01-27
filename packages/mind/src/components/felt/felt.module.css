@@ -1,0 +1,96 @@
+.felt {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  height: 100%;
+}
+
+.playSpace {
+  font-weight: 900;
+  flex: 1;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	position: relative;
+	& > div {
+		margin: 10px;
+	}
+  .lives {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    h6 {
+      font-size: 1.5em;
+      color: #aaa;
+    }
+    .livesBlob {
+      background-color: #666;
+      width: 4em;
+      height: 4em;
+      font-size: 2em;
+      border-radius: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      &>span {
+        font-size: 2em;
+      }
+    }
+  }
+  .dropZone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    h6 {
+      font-size: 2em;
+      color: #aaa;
+    }
+    .target {
+      background-color: #666;
+      border-radius: 100%;
+      width: 20em;
+      height: 20em;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      &>div {
+        font-size: 2em;
+      }
+      &:hover {
+        background-color: #777;
+      }
+    }
+  }
+  .stars {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    h6 {
+      font-size: 1.5em;
+      color: #aaa;
+    }
+    .starsBlob {
+      background-color: #666;
+      width: 4em;
+      height: 4em;
+      font-size: 2em;
+      border-radius: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      &>span {
+        font-size: 2em;
+      }
+    }
+  }
+}
+
+.myCards {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 5px;
+  &>div:first-child {
+    font-size: 1.2em;
+  }
+}

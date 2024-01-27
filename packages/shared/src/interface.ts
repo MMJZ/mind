@@ -1,4 +1,4 @@
-import { RoomPosition, PlayerFocus, PlayerPosition, PlayerCard } from "./model";
+import { RoomPosition, PlayerFocus, PlayerPosition, PlayerCard, PlayerPositionWithId } from "./model";
 import { Merge } from "./util";
 
 type ClientServerEvents = [
@@ -7,7 +7,7 @@ type ClientServerEvents = [
 			joinRoom: (name: string) => void;
 		};
 		server: {
-			joinRoomSuccess: () => void;
+			joinRoomSuccess: (roomName: string) => void;
 			joinRoomFailure: (error: string) => void;
 		};
 	},
@@ -25,7 +25,7 @@ type ClientServerEvents = [
 			setName: (name: string) => void;
 		};
 		server: {
-			setNameSuccess: () => void;
+			setNameSuccess: (name: string) => void;
 			setNameFailure: (error: string) => void;
 		};
 	},
@@ -53,7 +53,7 @@ type ClientServerEvents = [
 			setPosition: (position: PlayerPosition) => void;
 		};
 		server: {
-			setPlayerPositions: (positions: PlayerPosition[]) => void;
+			setPlayerPositions: (positions: PlayerPositionWithId[]) => void;
 		};
 	},
 	{
@@ -63,7 +63,6 @@ type ClientServerEvents = [
 		server: {
 			playCardSuccess: (play: PlayerCard) => void;
 			playCardFailure: (error: string) => void;
-			cardPlayed: (value: number, left: Map<string, number>) => void;
 			star: (cards: PlayerCard[], newStars: number) => void;
 			bust: (revealed: PlayerCard[], newLives: number) => void;
 		};

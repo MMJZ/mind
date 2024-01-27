@@ -14,7 +14,7 @@
 	},
 	"plugins": ["react"],
 	"rules": {
-		"@typescript-eslint/indent": ["error", "tab"],
+		"@typescript-eslint/indent": "off",
 		"@typescript-eslint/semi": "off",
 		"no-tabs": "off",
 		"jest/no-deprecated-functions": "off",

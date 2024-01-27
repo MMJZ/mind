@@ -1,5 +1,5 @@
 import { type JSX } from 'preact';
-import css from './style.module.css';
+import css from './gameCard.module.css';
 
 interface GameCardProps {
 	value: number;
@@ -8,15 +8,15 @@ interface GameCardProps {
 export function GameCard({ value }: GameCardProps): JSX.Element {
 	return (
 		<div class={css.wrapper}>
-			<div class={css.edgeRow}>
+			{/* <div class={css.edgeRow}>
 				<span>{value}</span>
 				<span>{value}</span>
-			</div>
+			</div> */}
 			<div class={css.main}>{value}</div>
-			<div class={css.edgeRow}>
+			{/* <div class={css.edgeRow}>
 				<span>{value}</span>
 				<span>{value}</span>
-			</div>
+			</div> */}
 		</div>
 	);
 }

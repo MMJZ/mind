@@ -67,6 +67,7 @@ io.on('connection', async (socket) => {
 
 	socket.on('setName', (name: string) => {
 		socket.data.name = name;
+		socket.emit('setNameSuccess', name);
 		socket.data.room?.sendRoomPosition();
 	});
 

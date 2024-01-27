@@ -39,7 +39,7 @@ export class Room {
 		socket.data.room = this;
 		socket.join(this.name);
 		this._players.push(socket);
-		socket.emit('joinRoomSuccess');
+		socket.emit('joinRoomSuccess', this.name);
 		this.sendRoomPosition();
 	}
 
@@ -57,7 +57,10 @@ export class Room {
 			round: this.round,
 			lives: this.lives,
 			stars: this.stars,
-			players: new Map(this.players.map((p) => [p.id, p.data.name])),
+			players: this.players.map((p) => ({
+				id: p.id,
+				name: p.data.name,
+			})),
 		});
 	}
 

@@ -20,6 +20,7 @@
 	},
 	"prettier": {
 		"useTabs": true,
-		"singleQuote": true
+		"singleQuote": true,
+		"printWidth": 120
 	}
 }
