@@ -19,7 +19,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    h6 {
+    :is(h6) {
       font-size: 1.5em;
       color: #aaa;
     }
@@ -41,7 +41,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    h6 {
+    :is(h6) {
       font-size: 2em;
       color: #aaa;
     }
@@ -65,7 +65,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    h6 {
+    :is(h6) {
       font-size: 1.5em;
       color: #aaa;
     }
@@ -92,5 +92,28 @@
   gap: 5px;
   &>div:first-child {
     font-size: 1.2em;
+  }
+}
+
+.otherPlayerSpot {
+  position: absolute;
+  top: 20px;
+  left: 100px;
+  background: red;
+  /* width: 200px; */
+  /* height: 200px; */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  .otherPlayerCards {
+    font-size: 1em;
+    /* &>div { */
+      /* position: relative; */
+      /* overflow-x: visible; */
+    /* } */
+  }
+  .otherPlayerShownCards {
+    font-size: 1em;
   }
 }

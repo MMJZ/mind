@@ -9,10 +9,10 @@
 		"lint:fix": "eslint --fix ."
 	},
 	"dependencies": {
-		"shared": "file:../shared",
-		"preact": "^10.13.1",
-		"preact-iso": "^2.3.2",
+		"@preact/signals": "^1.2.2",
+		"preact": "^10.19.3",
 		"preact-render-to-string": "^6.3.1",
+		"shared": "file:../shared",
 		"socket.io-client": "^4.7.2"
 	},
 	"devDependencies": {

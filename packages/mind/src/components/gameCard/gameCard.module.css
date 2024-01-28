@@ -2,9 +2,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Rubik+Distressed&display=swap&text=1234567890.');
 
 .wrapper {
-  background-image: url('https://images.unsplash.com/photo-1516339901601-2e1b62dc0c45?q=80&w=3071&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D');
-  background-position: center;
-  background-size: cover;
   color: white;
   display: inline-flex;
   flex-direction: column;
@@ -16,6 +13,17 @@
   /* height: 8em; */
   height: 5em;
   text-shadow: 0 0 0.2em black;
+}
+
+.outline {
+  border: 1px solid #eee;
+  box-shadow: 0 0 0.2em 0.02em rgba(0, 0, 0, 0.15) inset;
+}
+
+.cardProper {
+  background-image: url('https://images.unsplash.com/photo-1516339901601-2e1b62dc0c45?q=80&w=3071&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D');
+  background-position: center;
+  background-size: cover;
   box-shadow: 0 0 0.2em 0.02em rgba(255, 255, 255, 0.15) inset;
 }
 
