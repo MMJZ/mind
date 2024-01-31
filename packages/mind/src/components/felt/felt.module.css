@@ -1,21 +1,12 @@
 .felt {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  height: 100%;
-}
-
-.playSpace {
   font-weight: 900;
-  flex: 1;
 	display: flex;
 	justify-content: center;
 	align-items: center;
 	position: relative;
-	& > div {
-		margin: 10px;
-	}
+  height: 100%;
   .lives {
+		margin: 10px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -38,6 +29,7 @@
     }
   }
   .dropZone {
+		margin: 10px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -62,6 +54,7 @@
     }
   }
   .stars {
+		margin: 10px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -86,34 +79,15 @@
 }
 
 .myCards {
+  /* background: red; */
+  position: absolute;
+  width: 100%;
+  bottom: 0;
   display: flex;
   justify-content: center;
   align-items: flex-end;
   gap: 5px;
   &>div:first-child {
     font-size: 1.2em;
-  }
-}
-
-.otherPlayerSpot {
-  position: absolute;
-  top: 20px;
-  left: 100px;
-  background: red;
-  /* width: 200px; */
-  /* height: 200px; */
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  .otherPlayerCards {
-    font-size: 1em;
-    /* &>div { */
-      /* position: relative; */
-      /* overflow-x: visible; */
-    /* } */
-  }
-  .otherPlayerShownCards {
-    font-size: 1em;
   }
 }

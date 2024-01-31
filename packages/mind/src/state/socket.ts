@@ -8,6 +8,7 @@ import {
 	type PlayerPositionWithId,
 	type RoomPosition,
 	type PlayerCartesianPosition,
+	PlayerCartesianPositionWithId,
 } from 'shared';
 import { type Socket, io } from 'socket.io-client';
 import {
@@ -30,20 +31,28 @@ export interface AppState {
 	renderRound: ReadonlySignal<string>;
 	renderStars: ReadonlySignal<string>;
 	socket: Socket;
-	otherPlayers: Signal<Player[]>;
+	// allPlayers: Signal<Player[]>;
 	// otherPlayerPositions: Signal<PlayerPositionWithId[]>;
-	otherPlayerFeltPositions: ReadonlySignal<
-		Map<string, PlayerCartesianPosition>
-	>;
+	otherPlayerFeltPositions: ReadonlySignal<PlayerCartesianPositionWithId[]>;
 	playerPosition: Signal<[number, number]>;
 	roomState: Signal<RoomState>;
 	votingStar: Signal<boolean>;
-	feltBounds: Signal<Bounds>;
+	feltBounds: Signal<Bounds | null>;
 	playerCards: Signal<number[]>;
 	votingStarInFlight: Signal<boolean>;
 	votingFocusInFlight: Signal<boolean>;
 	votingFocus: Signal<boolean>;
 	lastCardPlayed: Signal<number | undefined>;
+	otherPlayerSpots: ReadonlySignal<
+		{
+			id: string;
+			name: string;
+			shownCards: number[];
+			cardsLeft: number;
+			left: number;
+			top: number;
+		}[]
+	>;
 }
 
 export function createAppState(): AppState {
@@ -64,17 +73,12 @@ export function createAppState(): AppState {
 	const playerCards = signal<number[]>([]);
 	const playerPosition = signal<[number, number]>([0, 0]);
 	const latestError = signal<string | undefined>(undefined);
-	const otherPlayers = signal<Player[]>([]);
-	const otherPlayerPositions = signal<PlayerPositionWithId[]>([]);
+	const allPlayers = signal<Player[]>([]);
+	const allPlayerPositions = signal<PlayerPositionWithId[]>([]);
 	const lastCardPlayed = signal<number | undefined>(undefined);
 	const otherPlayerCardCounts = signal<Map<SocketId, number>>(new Map());
 	const revealedCards = signal<Map<SocketId, number[]>>(new Map());
-	const feltBounds = signal<Bounds>({
-		top: 0,
-		left: 0,
-		width: 1,
-		height: 1,
-	});
+	const feltBounds = signal<Bounds | null>(null);
 
 	function setOtherPlayersCardCount(newCardCount: number): void {
 		otherPlayerCardCounts.value = new Map(
@@ -102,6 +106,8 @@ export function createAppState(): AppState {
 			autoConnect: false,
 		},
 	);
+
+	const socketId = 'pete';
 
 	socket.on('connect', () => {
 		isConnected.value = true;
@@ -132,14 +138,14 @@ export function createAppState(): AppState {
 	});
 
 	socket.on('setPlayerPositions', (positions: PlayerPositionWithId[]) => {
-		otherPlayerPositions.value = positions;
+		allPlayerPositions.value = positions;
 	});
 
 	socket.on('setRoomPosition', (roomPosition: RoomPosition) => {
 		lives.value = roomPosition.lives;
 		round.value = roomPosition.round;
 		stars.value = roomPosition.stars;
-		otherPlayers.value = roomPosition.players;
+		allPlayers.value = roomPosition.players;
 	});
 
 	socket.on('roundStartSuccess', (cards: number[]) => {
@@ -149,7 +155,7 @@ export function createAppState(): AppState {
 	});
 
 	socket.on('playCardSuccess', (played: PlayerCard) => {
-		if (played.id === socket.id) {
+		if (played.id === socketId) {
 			playCardInFlight.value = false;
 			playerCards.value = playerCards.value.filter((c) => c <= played.card);
 		} else {
@@ -191,20 +197,39 @@ export function createAppState(): AppState {
 	effect(() => {
 		function sendPosition(): void {
 			const [x, y] = playerPosition.peek();
+			const bounds = feltBounds.peek();
 
-			const [r, θ] = toPolarCoords(x, y, feltBounds.peek());
+			if (bounds === null) {
+				return;
+			}
 
-			socket.emit('setPosition', {
+			const [r, θ] = toPolarCoords(x, y, bounds);
+			// socket.emit('setPosition', {
+			// 	r,
+			// 	θ,
+			// 	star: votingStar.peek(),
+			// });
+
+			console.log('hmm', r, θ);
+
+			allPlayerPositions.value = [
+				'jenny',
+				// 'fart007',
+				'pete',
+				'ricketySplit',
+				'unwashedbehinds',
+			].map((id) => ({
+				id,
 				r,
 				θ,
-				star: votingStar.peek(),
-			});
+				star: false,
+			}));
 		}
 
 		let id: NodeJS.Timeout | undefined;
 
 		if (roomState.value === 'inGame') {
-			id = setInterval(sendPosition, 300);
+			id = setInterval(sendPosition, 100);
 		}
 
 		return () => {
@@ -214,30 +239,182 @@ export function createAppState(): AppState {
 		};
 	});
 
-	const otherPlayerFeltPositions = computed(() => {
-		const positions = otherPlayerPositions.value;
-		const gap = (2 * Math.PI) / otherPlayers.value.length;
-		const initialOffset = positions.findIndex((p) => p.id === socket.id);
-		return new Map(
-			positions
-				.map<[SocketId, PlayerCartesianPosition]>((position, i) => {
-					const offset = gap * (i - initialOffset);
-					const [x, y] = toCartesianCoords(
-						position.r,
-						position.θ + offset,
-						feltBounds.value,
-					);
+	effect(() => {
+		if (!roomJoinInFlight.value && roomName.value === undefined) {
+			let candidateRoom: string | null = null;
+			while (candidateRoom === null) {
+				candidateRoom = prompt('Room', 'name');
+			}
+			socket.emit('joinRoom', candidateRoom);
+			roomJoinInFlight.value = true;
+		}
+	});
 
-					return [position.id, { x, y, star: position.star }];
-				})
-				.filter(([id]) => id !== socket.id),
-		);
+	const otherPlayerFeltPositions = computed(() => {
+		const positions = allPlayerPositions.value;
+		const gap = (2 * Math.PI) / positions.length;
+		const initialOffset = positions.findIndex((p) => p.id === socketId);
+
+		const bounds = feltBounds.value;
+
+		if (bounds === null) {
+			return [];
+		}
+
+		return positions
+			.map((position, i) => {
+				const offset = gap * (i - initialOffset);
+				const [x, y] = toCartesianCoords(
+					position.r,
+					position.θ + offset,
+					bounds,
+				);
+
+				return { id: position.id, x: x - 10, y: y - 10, star: position.star };
+			})
+			.filter((position) => position.id !== socketId);
+	});
+
+	const otherPlayerSpots = computed(() => {
+		const otherPlayers = allPlayers.value.filter((p) => p.id !== socketId);
+		const totalPlayers = otherPlayers.length + 1;
+
+		const bounds = feltBounds.value;
+
+		if (bounds === null) {
+			return [];
+		}
+
+		const { width, height } = bounds;
+		const desiredPadding = 20;
+		const [spotWidth, spotHeight] = [260, 100];
+		const widthBias = spotWidth / spotHeight;
+
+		const minLeft = desiredPadding;
+		const maxLeft = width - desiredPadding - spotWidth;
+		const minTop = desiredPadding;
+		const maxTop = height - desiredPadding - spotHeight;
+
+		const boundsWidth = maxLeft - minLeft;
+		const boundsHeight = maxTop - minTop;
+		const biasedBoundsHeight = boundsHeight * widthBias;
+		const totalDistance = boundsWidth * 2 + biasedBoundsHeight * 2;
+		const firstCorner = boundsWidth / 2 / totalDistance;
+		const secondCorner = firstCorner + biasedBoundsHeight / totalDistance;
+		const thirdCorner = secondCorner + boundsWidth / totalDistance;
+		const fourthCorner = thirdCorner + biasedBoundsHeight / totalDistance;
+
+		return otherPlayers.map(({ id, name }, i) => {
+			const shownCards = revealedCards.value.get(id) ?? [];
+			const cardsLeft = otherPlayerCardCounts.value.get(id) ?? 0;
+			const proportionAlongPerimeter = (i + 1) / totalPlayers;
+
+			let left = 0;
+			let top = 0;
+
+			if (proportionAlongPerimeter < firstCorner) {
+				left =
+					minLeft +
+					0.5 * boundsWidth * (1 + proportionAlongPerimeter / firstCorner);
+				top = maxTop;
+			} else if (proportionAlongPerimeter < secondCorner) {
+				left = maxLeft;
+				top =
+					maxTop -
+					(boundsHeight * (proportionAlongPerimeter - firstCorner)) /
+						(secondCorner - firstCorner);
+			} else if (proportionAlongPerimeter < thirdCorner) {
+				left =
+					maxLeft -
+					(boundsWidth * (proportionAlongPerimeter - secondCorner)) /
+						(thirdCorner - secondCorner);
+				top = minTop;
+			} else if (proportionAlongPerimeter < fourthCorner) {
+				left = minLeft;
+				top =
+					minTop +
+					(boundsHeight * (proportionAlongPerimeter - thirdCorner)) /
+						(fourthCorner - thirdCorner);
+			} else {
+				left =
+					minLeft +
+					(0.5 * boundsWidth * (proportionAlongPerimeter - fourthCorner)) /
+						(1 - fourthCorner);
+				top = maxTop;
+			}
+
+			return {
+				id,
+				name,
+				shownCards,
+				cardsLeft,
+				left,
+				top,
+			};
+		});
 	});
 
 	// fixes for testing
 
 	playerCards.value = [4, 5, 6];
-	lastCardPlayed.value = 100;
+	// lastCardPlayed.value = 100;
+	allPlayers.value = [
+		{
+			name: 'pete',
+			id: 'pete',
+		},
+		{
+			name: 'jenny',
+			id: 'jenny',
+		},
+		{
+			name: 'ricketySplit',
+			id: 'ricketySplit',
+		},
+	];
+
+	// setTimeout(
+	// 	() =>
+	// 		(allPlayers.value = [
+	// 			...allPlayers.value,
+	// 			{
+	// 				name: 'fart007',
+	// 				id: 'fart007',
+	// 			},
+	// 		]),
+	// 	8000,
+	// );
+
+	setTimeout(
+		() =>
+			(allPlayers.value = [
+				...allPlayers.value,
+				{
+					name: 'unwashedbehinds',
+					id: 'unwashedbehinds',
+				},
+			]),
+		10000,
+	);
+	setTimeout(() => (roomState.value = 'inGame'), 2000);
+
+	otherPlayerCardCounts.value = new Map([
+		['pete', 3],
+		['jenny', 1],
+		['fart007', 2],
+	]);
+
+	revealedCards.value = new Map([
+		['unwashedbehinds', [4, 100]],
+		['asd', [3]],
+	]);
+
+	setTimeout(() => {
+		revealedCards.value = new Map([
+			...revealedCards.value.entries(),
+			['pete', [5, 10]],
+		]);
+	}, 6000);
 
 	return {
 		isConnected,
@@ -247,7 +424,7 @@ export function createAppState(): AppState {
 		roomName,
 		socket,
 		playerPosition,
-		otherPlayers,
+		// otherPlayers,
 		otherPlayerFeltPositions,
 		renderRoomName,
 		renderLives,
@@ -260,6 +437,7 @@ export function createAppState(): AppState {
 		votingFocus,
 		votingFocusInFlight,
 		votingStarInFlight,
-		lastCardPlayed
+		lastCardPlayed,
+		otherPlayerSpots,
 	};
 }

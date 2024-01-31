@@ -2,12 +2,9 @@ import { type JSX } from 'preact';
 import css from './felt.module.css';
 import { useContext, useEffect, useRef } from 'preact/hooks';
 import { GameCard } from '../gameCard/GameCard';
-import { type Bounds } from '../../util';
 import { StateContext } from '../../context';
-
-export interface RefWithBounds {
-	getBoundingClientRect: () => Bounds;
-}
+import { Fingers } from '../fingers/Fingers';
+import { Spots } from '../spots/Spots';
 
 export function Felt(): JSX.Element {
 	const _state = useContext(StateContext);
@@ -35,44 +32,33 @@ export function Felt(): JSX.Element {
 	}, [state.feltBounds]);
 
 	function handleMouseMove(event: MouseEvent): void {
-		state.playerPosition.value = [event.screenX, event.screenY];
+		state.playerPosition.value = [event.pageX, event.pageY];
 	}
 
 	return (
 		<div ref={feltRef} class={css.felt} onMouseMove={handleMouseMove}>
-			<div class={css.playSpace}>
-				<div class={css.otherPlayerSpot}>
-					<span>bigDadda</span>
-					<div class={css.otherPlayerCards}>
-						{new Array(6).fill(<GameCard variant="faceDown" />)}
-					</div>
-					<div class={css.otherPlayerShownCards}>
-						{[5, 60].map((v) => (
-							<GameCard value={v} />
-						))}
-					</div>
+			<Fingers />
+			<Spots />
+			<div class={css.lives}>
+				<h6>Lives</h6>
+				<div class={css.livesBlob}>
+					<span>{state.renderLives}</span>
 				</div>
-				<div class={css.lives}>
-					<h6>Lives</h6>
-					<div class={css.livesBlob}>
-						<span>{state.renderLives}</span>
-					</div>
+			</div>
+			<div class={css.dropZone}>
+				{/* <h6>Round {state.renderRound}</h6> */}
+				<div class={css.target}>
+					{state.lastCardPlayed.value ? (
+						<GameCard value={state.lastCardPlayed.value} />
+					) : (
+						<GameCard variant="outline" />
+					)}
 				</div>
-				<div class={css.dropZone}>
-					<h6>Round {state.renderRound}</h6>
-					<div class={css.target}>
-						{state.lastCardPlayed.value ? (
-							<GameCard value={state.lastCardPlayed.value} />
-						) : (
-							<GameCard variant="outline" />
-						)}
-					</div>
-				</div>
-				<div class={css.stars}>
-					<h6>Stars</h6>
-					<div class={css.starsBlob}>
-						<span>{state.renderStars}</span>
-					</div>
+			</div>
+			<div class={css.stars}>
+				<h6>Stars</h6>
+				<div class={css.starsBlob}>
+					<span>{state.renderStars}</span>
 				</div>
 			</div>
 			<div class={css.myCards}>

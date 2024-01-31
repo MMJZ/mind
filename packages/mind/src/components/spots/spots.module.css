@@ -1,0 +1,43 @@
+.otherPlayerSpotWrapper {
+	z-index: 50;
+	position: absolute;
+	width: 260px;
+	height: 100px;
+	transition: all 1s ease-in-out;
+}
+
+.otherPlayerSpot {
+	border-radius: 10px;
+	border: 1px solid rgba(255, 255, 255, 0.4);
+	background-color: rgba(0, 0, 0, 0.2);
+	padding: 5px;
+	.noCards {
+		opacity: 0.3;
+	}
+	.nameRow {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+	}
+	.otherPlayerCardCount {
+		margin-left: 10px;
+		display: flex;
+		align-items: center;
+		& > div {
+			font-size: 0.3em;
+			margin-right: 4px;
+		}
+		& > span {
+			font-weight: 700;
+		}
+	}
+	.otherPlayerShownCards {
+		display: flex;
+		justify-content: center;
+		gap: 5px;
+		font-size: 0.7em;
+		& > div {
+			margin-top: 5px;
+		}
+	}
+}

@@ -7,9 +7,12 @@ export interface RoomPosition {
 	players: Player[];
 }
 
-export interface Player {
-	name: string;
+export interface HasSocketId {
 	id: SocketId;
+}
+
+export interface Player extends HasSocketId {
+	name: string;
 }
 
 export interface PlayerPosition {
@@ -18,9 +21,7 @@ export interface PlayerPosition {
 	star: boolean;
 }
 
-export interface PlayerPositionWithId extends PlayerPosition {
-	id: SocketId;
-}
+export interface PlayerPositionWithId extends PlayerPosition, HasSocketId {}
 
 export interface PlayerCartesianPosition {
 	x: number;
@@ -28,12 +29,14 @@ export interface PlayerCartesianPosition {
 	star: boolean;
 }
 
-export interface PlayerCard {
-	id: SocketId;
+export interface PlayerCartesianPositionWithId
+	extends PlayerCartesianPosition,
+		HasSocketId {}
+
+export interface PlayerCard extends HasSocketId {
 	card: number;
 }
 
-export interface PlayerFocus {
-	id: SocketId;
+export interface PlayerFocus extends HasSocketId {
 	focus: boolean;
 }

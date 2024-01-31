@@ -17,19 +17,11 @@ export function Main(): JSX.Element {
 	const state = _state;
 
 	function updateName(candidateName: string | null): void {
-		if (candidateName !== null && candidateName !== state.playerName.value) {
+		if (candidateName !== null && candidateName !== state.playerName.peek()) {
 			state.socket.emit('setName', candidateName);
 			state.nameUpdateInFlight.value = true;
 		}
 	}
-
-	useSignalEffect(() => {
-		if (!state.roomJoinInFlight.value && state.roomName.value === undefined) {
-			const candidateRoom = prompt('Room', 'name');
-			state.socket.emit('joinRoom', candidateRoom);
-			state.roomJoinInFlight.value = true;
-		}
-	});
 
 	return (
 		<div class={css.wrapper}>
@@ -44,7 +36,7 @@ export function Main(): JSX.Element {
 						class={css.statusButton}
 						title="Edit Name"
 						onClick={() => {
-							updateName(prompt('Name', state.playerName.value));
+							updateName(prompt('Name', state.playerName.peek()));
 						}}
 					>
 						<span>{state.playerName}</span>
