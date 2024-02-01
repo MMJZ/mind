@@ -1,6 +1,6 @@
 import { type JSX, render } from 'preact';
 import { Main } from './components/main/Main';
-import { createAppState } from './state/socket';
+import { createAppState } from './state/store';
 import { StateContext } from './context';
 
 const appElement = document.getElementById('app');

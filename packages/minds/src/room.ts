@@ -71,7 +71,7 @@ export class Room {
 			socket.emit('roundStartFailure', 'not in lobby');
 			return;
 		}
-		if (this.players.length < 2) {
+		if (this.players.length < 1) {
 			socket.emit('roundStartFailure', 'not enough players');
 			return;
 		}
@@ -84,6 +84,8 @@ export class Room {
 			deck[i] = deck[j];
 			deck[j] = temp;
 		}
+
+		this.sendRoomPosition();
 
 		let marker = 0;
 		for (const player of this.players) {
@@ -185,7 +187,10 @@ export class Room {
 			});
 
 			if (this.players.every((p) => p.data.cards.length === 0)) {
+				this.io.to(this.name).emit('roundComplete');
 				this._roomState = 'lobby';
+				this.round += 1;
+				// TODO apply extra lives etc
 			}
 		}
 	}

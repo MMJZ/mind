@@ -20,8 +20,8 @@ io.on('connection', async (socket) => {
 	socket.data = {
 		name: socket.id,
 		position: {
-			x: 0,
-			y: 0,
+			r: 0,
+			θ: 0,
 			star: false,
 		},
 		focussed: false,

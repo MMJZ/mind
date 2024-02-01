@@ -37,6 +37,6 @@ export interface PlayerCard extends HasSocketId {
 	card: number;
 }
 
-export interface PlayerFocus extends HasSocketId {
-	focus: boolean;
-}
+// export interface PlayerFocus extends HasSocketId {
+// 	focus: boolean;
+// }

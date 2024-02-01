@@ -1,4 +1,4 @@
-import { RoomPosition, PlayerFocus, PlayerPosition, PlayerCard, PlayerPositionWithId } from "./model";
+import { RoomPosition, PlayerPosition, PlayerCard, PlayerPositionWithId, SocketId } from "./model";
 import { Merge } from "./util";
 
 type ClientServerEvents = [
@@ -44,7 +44,7 @@ type ClientServerEvents = [
 		};
 		server: {
 			setRoomPosition: (position: RoomPosition) => void;
-			setPlayerFocusses: (focusses: PlayerFocus[]) => void;
+			setPlayerFocusses: (focussed: SocketId[]) => void;
 			focusStart: () => void;
 		};
 	},
@@ -65,6 +65,7 @@ type ClientServerEvents = [
 			playCardFailure: (error: string) => void;
 			star: (cards: PlayerCard[], newStars: number) => void;
 			bust: (revealed: PlayerCard[], newLives: number) => void;
+			roundComplete: () => void;
 		};
 	},
 ];

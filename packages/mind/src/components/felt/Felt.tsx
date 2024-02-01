@@ -35,6 +35,9 @@ export function Felt(): JSX.Element {
 		state.playerPosition.value = [event.pageX, event.pageY];
 	}
 
+	// TODO set focus
+	// TODO set star
+
 	return (
 		<div ref={feltRef} class={css.felt} onMouseMove={handleMouseMove}>
 			<Fingers />

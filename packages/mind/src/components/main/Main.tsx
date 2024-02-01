@@ -5,7 +5,6 @@ import { Button } from '../button/Button';
 import { Felt } from '../felt/Felt';
 import { Updating } from '../updating/Updating';
 import { StateContext } from '../../context';
-import { useSignalEffect } from '@preact/signals';
 
 export function Main(): JSX.Element {
 	const _state = useContext(StateContext);
@@ -21,6 +20,16 @@ export function Main(): JSX.Element {
 			state.socket.emit('setName', candidateName);
 			state.nameUpdateInFlight.value = true;
 		}
+	}
+
+	function startRound(): void {
+		state.socket.emit('roundStart');
+		state.startRoundInFlight.value = true;
+	}
+
+	function leaveRoom(): void {
+		state.socket.emit('leaveRoom');
+		state.roomJoinInFlight.value = true;
 	}
 
 	return (
@@ -50,8 +59,8 @@ export function Main(): JSX.Element {
 						<span>{state.roomJoinInFlight.value && <Updating />}</span>
 					</div>
 				</div>
-				<Button text="start round" />
-				<Button text="leave room" />
+				<Button text="start round" onClick={startRound}/>
+				<Button text="leave room" onClick={leaveRoom} />
 			</nav>
 			<main>
 				<Felt />
