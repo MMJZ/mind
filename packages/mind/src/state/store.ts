@@ -33,6 +33,7 @@ export interface AppState {
 	socket: Socket<ServerToClientEvents, ClientToServerEvents>;
 	otherPlayerFeltPositions: ReadonlySignal<PlayerCartesianPositionWithId[]>;
 	playerPosition: Signal<[number, number]>;
+	playerIsPressing: Signal<boolean>;
 	roomState: Signal<RoomState>;
 	votingStar: Signal<boolean>;
 	feltBounds: Signal<Bounds | null>;
@@ -51,11 +52,12 @@ export interface AppState {
 			top: number;
 		}[]
 	>;
+	focussedPlayerNames: ReadonlySignal<Player[]>;
 }
 
 export function createAppState(): AppState {
 	const isConnected = signal(false);
-	const playerName = signal('cheesePerson');
+	const playerName = signal('gouda');
 	const nameUpdateInFlight = signal(false);
 	const roomJoinInFlight = signal(false);
 	const playCardInFlight = signal(false);
@@ -79,6 +81,7 @@ export function createAppState(): AppState {
 	const revealedCards = signal<Map<SocketId, number[]>>(new Map());
 	const feltBounds = signal<Bounds | null>(null);
 	const focussedPlayers = signal<SocketId[]>([]);
+	const playerIsPressing = signal(false);
 
 	const socket = createSocket({
 		otherPlayerCardCounts,
@@ -103,10 +106,8 @@ export function createAppState(): AppState {
 		votingStar,
 		votingStarInFlight,
 		focussedPlayers,
-		votingFocus
+		votingFocus,
 	});
-
-	const socketId = 'pete';
 
 	function renderWithFallback<T>(
 		input: Signal<T | undefined>,
@@ -119,33 +120,35 @@ export function createAppState(): AppState {
 	const renderRound = renderWithFallback(round);
 	const renderStars = renderWithFallback(stars);
 
-	const otherPlayerFeltPositions = computed(() => {
-		const positions = allPlayerPositions.value;
-		const gap = (2 * Math.PI) / positions.length;
-		const initialOffset = positions.findIndex((p) => p.id === socketId);
+	const otherPlayerFeltPositions = computed<PlayerCartesianPositionWithId[]>(
+		() => {
+			const positions = allPlayerPositions.value;
+			const gap = (2 * Math.PI) / positions.length;
+			const initialOffset = positions.findIndex((p) => p.id === socket.id);
 
-		const bounds = feltBounds.value;
+			const bounds = feltBounds.value;
 
-		if (bounds === null) {
-			return [];
-		}
+			if (bounds === null) {
+				return [];
+			}
 
-		return positions
-			.map((position, i) => {
-				const offset = gap * (i - initialOffset);
-				const [x, y] = toCartesianCoords(
-					position.r,
-					position.θ + offset,
-					bounds,
-				);
+			return positions
+				.map((position, i) => {
+					const offset = gap * (i - initialOffset);
+					const [x, y] = toCartesianCoords(
+						position.r,
+						position.θ + offset,
+						bounds,
+					);
 
-				return { id: position.id, x: x - 10, y: y - 10, star: position.star };
-			})
-			.filter((position) => position.id !== socketId);
-	});
+					return { ...position, x: x - 10, y: y - 10 };
+				})
+				.filter((position) => position.id !== socket.id);
+		},
+	);
 
 	const otherPlayerSpots = computed(() => {
-		const otherPlayers = allPlayers.value.filter((p) => p.id !== socketId);
+		const otherPlayers = allPlayers.value.filter((p) => p.id !== socket.id);
 		const totalPlayers = otherPlayers.length + 1;
 
 		const bounds = feltBounds.value;
@@ -223,65 +226,26 @@ export function createAppState(): AppState {
 		});
 	});
 
-	// fixes for testing
-
-	playerCards.value = [4, 5, 6];
-	// lastCardPlayed.value = 100;
-	allPlayers.value = [
-		{
-			name: 'pete',
-			id: 'pete',
-		},
-		{
-			name: 'jenny',
-			id: 'jenny',
-		},
-		{
-			name: 'ricketySplit',
-			id: 'ricketySplit',
-		},
-	];
-
-	setTimeout(
-		() =>
-			(allPlayers.value = [
-				...allPlayers.value,
-				{
-					name: 'unwashedbehinds',
-					id: 'unwashedbehinds',
+	const focussedPlayerNames = computed(() =>
+		focussedPlayers.value.map(
+			(playerId) =>
+				allPlayers.value.find(({ id }) => playerId === id) ?? {
+					name: 'Player',
+					id: playerId,
 				},
-			]),
-		10000,
+		),
 	);
-	// setTimeout(() => (roomState.value = 'inGame'), 2000);
-
-	otherPlayerCardCounts.value = new Map([
-		['pete', 3],
-		['jenny', 1],
-		['fart007', 2],
-	]);
-
-	revealedCards.value = new Map([
-		['unwashedbehinds', [4, 100]],
-		['asd', [3]],
-	]);
-
-	setTimeout(() => {
-		revealedCards.value = new Map([
-			...revealedCards.value.entries(),
-			['pete', [5, 10]],
-		]);
-	}, 6000);
 
 	addEffects({
 		playerPosition,
 		feltBounds,
-		allPlayerPositions,
+		votingStar,
 		roomState,
 		roomJoinInFlight,
 		socket,
 		latestError,
 		roomName,
+		isConnected,
 	});
 
 	return {
@@ -308,5 +272,7 @@ export function createAppState(): AppState {
 		lastCardPlayed,
 		otherPlayerSpots,
 		playCardInFlight,
+		focussedPlayerNames,
+		playerIsPressing,
 	};
 }

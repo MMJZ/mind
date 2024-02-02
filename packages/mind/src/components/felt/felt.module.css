@@ -37,6 +37,9 @@
       font-size: 2em;
       color: #aaa;
     }
+    .hackHeader {
+      opacity: 0;
+    }
     .target {
       background-color: #666;
       border-radius: 100%;

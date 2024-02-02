@@ -14,9 +14,19 @@ export function Fingers(): JSX.Element {
 
 	return (
 		<>
-			{state.otherPlayerFeltPositions.value.map(({ id, x, y }) => (
-				<div key={id} class={css.finger} style={{ top: y, left: x }} />
-			))}
+			{state.otherPlayerFeltPositions.value.map(
+				({ id, x, y, star, pressing }) => (
+					<div
+						key={id}
+						class={`${css.finger} ${star ? css.star : ''}`}
+						style={{
+							top: y,
+							left: x,
+							backgroundColor: pressing ? 'white' : 'red',
+						}}
+					/>
+				),
+			)}
 		</>
 	);
 }

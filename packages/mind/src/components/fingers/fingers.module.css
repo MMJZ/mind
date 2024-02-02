@@ -2,7 +2,14 @@
   position: absolute;
   width: 20px;
   height: 20px;
-  background: red;
   transition: all 0.15s linear;
   z-index: 1000;
+}
+
+.star::after {
+  display: block;
+  content: '';
+  color: gold;
+  width: 5px;
+  height: 5px;
 }

@@ -28,6 +28,8 @@ io.on('connection', async (socket) => {
 		cards: [],
 	};
 
+	console.log('connexion', socket);
+
 	socket.on('disconnect', async (reason: string) => {
 		const room = socket.data.room;
 		if (room) {

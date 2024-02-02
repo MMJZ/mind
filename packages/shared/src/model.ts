@@ -15,18 +15,21 @@ export interface Player extends HasSocketId {
 	name: string;
 }
 
-export interface PlayerPosition {
+interface PlayerPositionBase {
+	star: boolean;
+	pressing: boolean;
+}
+
+export interface PlayerPosition extends PlayerPositionBase {
 	r: number;
 	θ: number;
-	star: boolean;
 }
 
 export interface PlayerPositionWithId extends PlayerPosition, HasSocketId {}
 
-export interface PlayerCartesianPosition {
+export interface PlayerCartesianPosition extends PlayerPositionBase {
 	x: number;
 	y: number;
-	star: boolean;
 }
 
 export interface PlayerCartesianPositionWithId

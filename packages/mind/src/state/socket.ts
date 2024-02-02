@@ -7,10 +7,9 @@ import {
 	RoomState,
 	SocketId,
 	Player,
-	PlayerFocus,
 } from 'shared';
 import { Socket, io } from 'socket.io-client';
-import { Signal } from '@preact/signals';
+import { Signal, batch } from '@preact/signals';
 
 interface SocketDependencies {
 	isConnected: Signal<boolean>;
@@ -86,11 +85,9 @@ export function createSocket({
 	const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(
 		'192.168.0.8:3000',
 		{
-			autoConnect: false,
+			autoConnect: true,
 		},
 	);
-
-	const socketId = 'pete';
 
 	socket.on('connect', () => {
 		isConnected.value = true;
@@ -101,8 +98,24 @@ export function createSocket({
 	});
 
 	socket.on('joinRoomSuccess', (joinedRoomName: string) => {
-		roomJoinInFlight.value = false;
-		roomName.value = joinedRoomName;
+		batch(() => {
+			roomJoinInFlight.value = false;
+			roomName.value = joinedRoomName;
+		});
+	});
+
+	socket.on('leaveRoomSuccess', () => {
+		batch(() => {
+			roomJoinInFlight.value = false;
+			roomName.value = undefined;
+		});
+	});
+
+	socket.on('leaveRoomFailure', (error: string) => {
+		batch(() => {
+			latestError.value = error;
+			roomJoinInFlight.value = false;
+		});
 	});
 
 	socket.on('joinRoomFailure', (error: string) => {
@@ -123,7 +136,7 @@ export function createSocket({
 	socket.on('setPlayerPositions', (positions: PlayerPositionWithId[]) => {
 		allPlayerPositions.value = positions;
 
-		const playerPosition = positions.find((p) => p.id === socketId);
+		const playerPosition = positions.find((p) => p.id === socket.id);
 		if (playerPosition) {
 			votingStarInFlight.value = playerPosition.star !== votingStar.peek();
 		}
@@ -139,7 +152,8 @@ export function createSocket({
 	socket.on('setPlayerFocusses', (focussed: SocketId[]) => {
 		focussedPlayers.value = focussed;
 		votingFocusInFlight.value =
-			focussed.includes(socketId) !== votingFocus.peek();
+			socket.id !== undefined &&
+			focussed.includes(socket.id) !== votingFocus.peek();
 	});
 
 	socket.on('roundStartSuccess', (cards: number[]) => {
@@ -150,7 +164,7 @@ export function createSocket({
 	});
 
 	socket.on('playCardSuccess', (played: PlayerCard) => {
-		if (played.id === socketId) {
+		if (played.id === socket.id) {
 			playCardInFlight.value = false;
 			playerCards.value = playerCards.value.filter((c) => c <= played.card);
 		} else {
@@ -165,7 +179,11 @@ export function createSocket({
 	});
 
 	socket.on('focusStart', () => {
-		roomState.value = 'inGame';
+		batch(() => {
+			roomState.value = 'inGame';
+			votingFocusInFlight.value = false;
+			votingFocus.value = false;
+		});
 	});
 
 	socket.on('bust', (revealed: PlayerCard[], newLives: number) => {

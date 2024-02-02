@@ -5,6 +5,7 @@ import { Button } from '../button/Button';
 import { Felt } from '../felt/Felt';
 import { Updating } from '../updating/Updating';
 import { StateContext } from '../../context';
+import { AppState } from '../../state/store';
 
 export function Main(): JSX.Element {
 	const _state = useContext(StateContext);
@@ -14,6 +15,8 @@ export function Main(): JSX.Element {
 	}
 
 	const state = _state;
+
+	(document as unknown as { hackState: AppState }).hackState = state;
 
 	function updateName(candidateName: string | null): void {
 		if (candidateName !== null && candidateName !== state.playerName.peek()) {
@@ -59,7 +62,8 @@ export function Main(): JSX.Element {
 						<span>{state.roomJoinInFlight.value && <Updating />}</span>
 					</div>
 				</div>
-				<Button text="start round" onClick={startRound}/>
+				<Button text="start round" onClick={startRound} />
+				{state.startRoundInFlight.value && <Updating />}
 				<Button text="leave room" onClick={leaveRoom} />
 			</nav>
 			<main>
