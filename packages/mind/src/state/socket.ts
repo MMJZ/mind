@@ -35,6 +35,7 @@ interface SocketDependencies {
 	latestError: Signal<string | undefined>;
 	allPlayers: Signal<Player[]>;
 	focussedPlayers: Signal<SocketId[]>;
+	// roundComplete: Signal<boolean>;
 }
 
 export function createSocket({
@@ -61,6 +62,7 @@ export function createSocket({
 	votingFocusInFlight,
 	votingStarInFlight,
 	focussedPlayers,
+	roundComplete,
 }: SocketDependencies): Socket<ServerToClientEvents, ClientToServerEvents> {
 	function setOtherPlayersCardCount(newCardCount: number): void {
 		otherPlayerCardCounts.value = new Map(
@@ -82,6 +84,15 @@ export function createSocket({
 		);
 	}
 
+	function completeRound(): void {
+		alert('victory!');
+		batch(() => {
+			lastCardPlayed.value = undefined;
+			roomState.value = 'lobby';
+			setOtherPlayersCardCount(0);
+		});
+	}
+
 	const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(
 		'192.168.0.8:3000',
 		{
@@ -94,7 +105,12 @@ export function createSocket({
 	});
 
 	socket.on('disconnect', () => {
-		isConnected.value = false;
+		batch(() => {
+			isConnected.value = false;
+			roomJoinInFlight.value = false;
+			roomName.value = undefined;
+			playerCards.value = [];
+		});
 	});
 
 	socket.on('joinRoomSuccess', (joinedRoomName: string) => {
@@ -119,63 +135,88 @@ export function createSocket({
 	});
 
 	socket.on('joinRoomFailure', (error: string) => {
-		roomJoinInFlight.value = false;
-		latestError.value = error;
+		batch(() => {
+			roomJoinInFlight.value = false;
+			latestError.value = error;
+		});
 	});
 
 	socket.on('setNameSuccess', (name: string) => {
-		nameUpdateInFlight.value = false;
-		playerName.value = name;
+		batch(() => {
+			nameUpdateInFlight.value = false;
+			playerName.value = name;
+		});
 	});
 
 	socket.on('setNameFailure', (error: string) => {
-		nameUpdateInFlight.value = false;
-		latestError.value = error;
+		batch(() => {
+			nameUpdateInFlight.value = false;
+			latestError.value = error;
+		});
 	});
 
 	socket.on('setPlayerPositions', (positions: PlayerPositionWithId[]) => {
-		allPlayerPositions.value = positions;
+		batch(() => {
+			allPlayerPositions.value = positions;
 
-		const playerPosition = positions.find((p) => p.id === socket.id);
-		if (playerPosition) {
-			votingStarInFlight.value = playerPosition.star !== votingStar.peek();
-		}
+			const playerPosition = positions.find((p) => p.id === socket.id);
+			if (playerPosition) {
+				votingStarInFlight.value = playerPosition.star !== votingStar.peek();
+			}
+		});
 	});
 
 	socket.on('setRoomPosition', (roomPosition: RoomPosition) => {
-		lives.value = roomPosition.lives;
-		round.value = roomPosition.round;
-		stars.value = roomPosition.stars;
-		allPlayers.value = roomPosition.players;
+		batch(() => {
+			lives.value = roomPosition.lives;
+			round.value = roomPosition.round;
+			stars.value = roomPosition.stars;
+			allPlayers.value = roomPosition.players;
+		});
 	});
 
 	socket.on('setPlayerFocusses', (focussed: SocketId[]) => {
-		focussedPlayers.value = focussed;
-		votingFocusInFlight.value =
-			socket.id !== undefined &&
-			focussed.includes(socket.id) !== votingFocus.peek();
+		batch(() => {
+			focussedPlayers.value = focussed;
+			votingFocusInFlight.value =
+				socket.id !== undefined &&
+				focussed.includes(socket.id) !== votingFocus.peek();
+		});
 	});
 
 	socket.on('roundStartSuccess', (cards: number[]) => {
-		playerCards.value = cards;
-		setOtherPlayersCardCount(cards.length);
-		roomState.value = 'awaitingFocus';
-		startRoundInFlight.value = false;
+		batch(() => {
+			playerCards.value = cards;
+			setOtherPlayersCardCount(cards.length);
+			roomState.value = 'awaitingFocus';
+			startRoundInFlight.value = false;
+		});
 	});
 
-	socket.on('playCardSuccess', (played: PlayerCard) => {
-		if (played.id === socket.id) {
-			playCardInFlight.value = false;
-			playerCards.value = playerCards.value.filter((c) => c <= played.card);
-		} else {
-			otherPlayerCardCounts.value = new Map(
-				Array.from(otherPlayerCardCounts.value.entries()).map(([id, count]) => [
-					id,
-					played.id === id ? count - 1 : count,
-				]),
-			);
+	socket.on('playCardSuccess', (played: PlayerCard, complete: boolean) => {
+		batch(() => {
+			console.log('playCardSuccess', played, socket.id, playerCards.peek());
+
+			if (played.id === socket.id) {
+				playCardInFlight.value = false;
+				playerCards.value = playerCards.value.filter((c) => c > played.card);
+
+				console.log('playCardSuccess', played, socket.id, playerCards.peek());
+			} else {
+				otherPlayerCardCounts.value = new Map(
+					Array.from(otherPlayerCardCounts.value.entries()).map(
+						([id, count]) => [id, played.id === id ? count - 1 : count],
+					),
+				);
+			}
+			lastCardPlayed.value = played.card;
+			// if (complete) {
+			// 	roundComplete.value = true;
+			// }
+		});
+		if (complete) {
+			completeRound();
 		}
-		lastCardPlayed.value = played.card;
 	});
 
 	socket.on('focusStart', () => {
@@ -183,21 +224,33 @@ export function createSocket({
 			roomState.value = 'inGame';
 			votingFocusInFlight.value = false;
 			votingFocus.value = false;
+			focussedPlayers.value = [];
 		});
 	});
 
-	socket.on('bust', (revealed: PlayerCard[], newLives: number) => {
-		lives.value = newLives;
-		revealCards(revealed);
-	});
+	socket.on(
+		'bust',
+		(revealed: PlayerCard[], newLives: number, gameOver: boolean) => {
+			batch(() => {
+				lives.value = newLives;
+				roomState.value = gameOver ? 'lobby' : 'awaitingFocus';
+				revealCards(revealed);
+			});
+		},
+	);
 
 	socket.on('star', (revealed: PlayerCard[], newStars: number) => {
-		stars.value = newStars;
-		revealCards(revealed);
+		batch(() => {
+			stars.value = newStars;
+			revealCards(revealed);
+		});
 	});
 
 	socket.on('roundStartFailure', (error: string) => {
-		latestError.value = error;
+		batch(() => {
+			latestError.value = error;
+			startRoundInFlight.value = false;
+		});
 	});
 
 	return socket;

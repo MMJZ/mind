@@ -53,6 +53,7 @@ export interface AppState {
 		}[]
 	>;
 	focussedPlayerNames: ReadonlySignal<Player[]>;
+	// roundComplete: Signal<boolean>;
 }
 
 export function createAppState(): AppState {
@@ -82,6 +83,7 @@ export function createAppState(): AppState {
 	const feltBounds = signal<Bounds | null>(null);
 	const focussedPlayers = signal<SocketId[]>([]);
 	const playerIsPressing = signal(false);
+	// const roundComplete = signal(false);
 
 	const socket = createSocket({
 		otherPlayerCardCounts,
@@ -107,6 +109,7 @@ export function createAppState(): AppState {
 		votingStarInFlight,
 		focussedPlayers,
 		votingFocus,
+		// roundComplete,
 	});
 
 	function renderWithFallback<T>(
@@ -246,6 +249,8 @@ export function createAppState(): AppState {
 		latestError,
 		roomName,
 		isConnected,
+		playerIsPressing,
+		playerName,
 	});
 
 	return {
@@ -274,5 +279,6 @@ export function createAppState(): AppState {
 		playCardInFlight,
 		focussedPlayerNames,
 		playerIsPressing,
+		// roundComplete
 	};
 }

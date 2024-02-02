@@ -1,4 +1,4 @@
-import { Signal, effect } from '@preact/signals';
+import { Signal, batch, effect } from '@preact/signals';
 import { Bounds, toPolarCoords } from './util';
 import {
 	ClientToServerEvents,
@@ -18,6 +18,8 @@ interface EffectsDependencies {
 	latestError: Signal<string | undefined>;
 	roomName: Signal<string | undefined>;
 	isConnected: Signal<boolean>;
+	playerIsPressing: Signal<boolean>;
+	playerName: Signal<string>;
 }
 
 export function addEffects({
@@ -30,6 +32,8 @@ export function addEffects({
 	latestError,
 	roomName,
 	isConnected,
+	playerIsPressing,
+	playerName,
 }: EffectsDependencies) {
 	effect(() => {
 		const error = latestError.value;
@@ -52,6 +56,7 @@ export function addEffects({
 				r,
 				θ,
 				star: votingStar.peek(),
+				pressing: playerIsPressing.peek(),
 			});
 		}
 
@@ -69,13 +74,19 @@ export function addEffects({
 	});
 
 	effect(() => {
-		if (isConnected.value && !roomJoinInFlight.value && roomName.value === undefined) {
+		if (
+			isConnected.value &&
+			!roomJoinInFlight.value &&
+			roomName.value === undefined &&
+			latestError.value === undefined
+		) {
 			let candidateRoom: string | null = null;
 			while (candidateRoom === null) {
-				candidateRoom = prompt('Room', 'name');
+				candidateRoom = prompt('Room', 'baseroom');
 			}
 			roomJoinInFlight.value = true;
 			socket.emit('joinRoom', candidateRoom);
+			socket.emit('setName', playerName.peek());
 		}
 	});
 }

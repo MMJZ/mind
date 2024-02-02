@@ -62,9 +62,22 @@ export function Main(): JSX.Element {
 						<span>{state.roomJoinInFlight.value && <Updating />}</span>
 					</div>
 				</div>
-				<Button text="start round" onClick={startRound} />
-				{state.startRoundInFlight.value && <Updating />}
-				<Button text="leave room" onClick={leaveRoom} />
+				<div>
+					<div>Room State</div>
+					<span>{state.roomState}</span>
+				</div>
+				{state.roomState.value === 'lobby' && (
+					<>
+						<Button text="start round" onClick={startRound} />
+						{state.startRoundInFlight.value && <Updating />}
+					</>
+				)}
+				{state.roomName.value !== undefined && (
+					<>
+						<Button text="leave room" onClick={leaveRoom} />
+						{state.roomJoinInFlight.value && <Updating />}
+					</>
+				)}
 			</nav>
 			<main>
 				<Felt />

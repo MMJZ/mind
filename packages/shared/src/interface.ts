@@ -61,11 +61,11 @@ type ClientServerEvents = [
 			playCard: () => void;
 		};
 		server: {
-			playCardSuccess: (play: PlayerCard) => void;
+			playCardSuccess: (play: PlayerCard, roundComplete: boolean) => void;
 			playCardFailure: (error: string) => void;
-			star: (cards: PlayerCard[], newStars: number) => void;
-			bust: (revealed: PlayerCard[], newLives: number) => void;
-			roundComplete: () => void;
+			star: (cards: PlayerCard[], newStars: number, roundComplete: boolean) => void;
+			bust: (revealed: PlayerCard[], newLives: number, gameOver: boolean) => void;
+			// roundComplete: () => void;
 		};
 	},
 ];

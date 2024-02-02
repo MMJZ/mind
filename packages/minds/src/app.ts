@@ -1,15 +1,19 @@
+import { getLogger } from './log';
 import { Room } from './room';
 import {
 	PlayerPosition,
 	type MServer,
-	createServer
+	createServer,
+	IRoom
 } from 'shared';
+
+const logger = getLogger();
 
 const io: MServer = createServer();
 
-const maxRooms = 1;
+const maxRooms = 3;
 
-const rooms = new Map<string, Room>();
+const rooms = new Map<string, IRoom>();
 
 // https://socket.io/docs/v4/memory-usage/
 io.engine.on('connection', (rawSocket) => {
@@ -18,45 +22,54 @@ io.engine.on('connection', (rawSocket) => {
 
 io.on('connection', async (socket) => {
 	socket.data = {
-		name: socket.id,
+		name: 'Player',
 		position: {
 			r: 0,
 			θ: 0,
 			star: false,
+			pressing: false,
 		},
 		focussed: false,
 		cards: [],
 	};
 
-	console.log('connexion', socket);
+	logger.info(`p:'${socket.id}' connected`);
 
 	socket.on('disconnect', async (reason: string) => {
+
+		logger.info(`p:'${socket.id}' disconnected reason:'${reason}'`);
+
 		const room = socket.data.room;
 		if (room) {
 			room.leave(socket);
 			if (room.players.length === 0) {
 				rooms.delete(room.name);
+				
+				logger.info(`r:'${room.name} empty; deleting`);
 			}
 		}
-		console.log(reason);
 	});
 
 	socket.on('joinRoom', (name: string) => {
+
+		logger.info(`p:'${socket.id}' join room r:'${name}'`);
+
 		if (socket.data.room) {
+
+			logger.warn(`p:'${socket.id}' already in room r:'${name}'`);
+
 			return socket.emit('joinRoomFailure', 'already in a room');
 		}
 		const room = rooms.get(name);
 		if (room) {
 			room.join(socket);
-			return;
-		}
-		if (rooms.size < maxRooms) {
-			const newRoom = new Room(io, name);
+		} else if (rooms.size < maxRooms) {
+
+			const newRoom = new Room(io, name, logger);
 			rooms.set(name, newRoom);
 			newRoom.join(socket);
 		} else {
 			socket.emit('joinRoomFailure', 'room limit reached');
-			return;
 		}
 	});
 

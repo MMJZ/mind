@@ -92,7 +92,7 @@ export function Felt(): JSX.Element {
 				<div
 					class={css.target}
 					onMouseDown={() => (state.playerIsPressing.value = true)}
-					onMouseOut={() => (state.playerIsPressing.value = false)}
+					onMouseLeave={() => (state.playerIsPressing.value = false)}
 					onMouseUp={() => playCard()}
 				>
 					{state.lastCardPlayed.value ? (

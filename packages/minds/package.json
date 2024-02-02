@@ -3,6 +3,7 @@
 	"scripts": {
 		"build": "tsc",
 		"serve": "node dist/app.js",
+		"dev": "tsc && node dist/app.js",
 		"lint": "eslint .",
 		"prettier": "prettier -w .",
 		"lint:fix": "eslint --fix ."
@@ -16,7 +17,8 @@
 	},
 	"dependencies": {
 		"shared": "file:../shared",
-		"socket.io": "^4.7.2"
+		"socket.io": "^4.7.2",
+		"winston": "^3.11.0"
 	},
 	"prettier": {
 		"useTabs": true,

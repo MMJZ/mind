@@ -1,10 +1,5 @@
-import {
-	type MServer,
-	type MSocket,
-	PlayerCard,
-	PlayerPosition,
-	type RoomState,
-} from 'shared';
+import { type MServer, type MSocket, PlayerCard, PlayerPosition, type RoomState } from 'shared';
+import { Logger } from 'winston';
 
 export class Room {
 	private _roomState: RoomState = 'lobby';
@@ -16,6 +11,7 @@ export class Room {
 	constructor(
 		private io: MServer,
 		private _name: string,
+		private logger: Logger,
 	) {}
 
 	public get players() {
@@ -41,6 +37,8 @@ export class Room {
 		this._players.push(socket);
 		socket.emit('joinRoomSuccess', this.name);
 		this.sendRoomPosition();
+
+		this.logger.info(`r:'${this.name} player p:'${socket.id}' joined`);
 	}
 
 	leave(socket: MSocket): void {
@@ -50,6 +48,8 @@ export class Room {
 		}
 		socket.emit('leaveRoomSuccess');
 		this.sendRoomPosition();
+
+		this.logger.info(`r:'${this.name} player p:'${socket.id}' left`);
 	}
 
 	sendRoomPosition(): void {
@@ -67,6 +67,8 @@ export class Room {
 	close(): void {}
 
 	async startRound(socket: MSocket): Promise<void> {
+		this.logger.info(`r:'${this.name} round start fired`);
+
 		if (this.roomState !== 'lobby') {
 			socket.emit('roundStartFailure', 'not in lobby');
 			return;
@@ -90,41 +92,40 @@ export class Room {
 		let marker = 0;
 		for (const player of this.players) {
 			const cards = deck.slice(marker, this.round);
+			cards.sort();
 			player.emit('roundStartSuccess', cards);
 			player.data.cards = cards;
 			marker += this.round;
 		}
+		this.logger.info(`r:'${this.name}' round start success`);
 
 		this._roomState = 'awaitingFocus';
 	}
 
-	async playerSetFocus(
-		socket: MSocket,
-		focus: boolean | unknown,
-	): Promise<void> {
+	async playerSetFocus(socket: MSocket, focus: boolean | unknown): Promise<void> {
 		if (this.roomState !== 'awaitingFocus') {
 			return;
 		}
 		socket.data.focussed = focus === true;
 		if (focus === true && this.players.every((p) => p.data.focussed)) {
+			this.logger.info(`r:'${this.name}' all players in focus - starting`);
+
 			this.io.to(this.name).emit('focusStart');
 			this._roomState = 'inGame';
+		} else {
+			this.io.to(this.name).emit(
+				'setPlayerFocusses',
+				this.players.filter((p) => p.data.focussed).map((p) => p.id),
+			);
 		}
 	}
 
-	async playerSetPosition(
-		socket: MSocket,
-		position: PlayerPosition,
-	): Promise<void> {
+	async playerSetPosition(socket: MSocket, position: PlayerPosition): Promise<void> {
 		if (this.roomState !== 'inGame') {
 			return;
 		}
 		socket.data.position = position;
-		if (
-			position.star &&
-			this.stars > 0 &&
-			this.players.every((p) => p.data.position.star)
-		) {
+		if (position.star && this.stars > 0 && this.players.every((p) => p.data.position.star)) {
 			const revealed = this.players.flatMap<PlayerCard>((player) => {
 				const [lowest, ...rest] = player.data.cards;
 				player.data.cards = rest;
@@ -139,12 +140,24 @@ export class Room {
 			});
 			this._roomState = 'star';
 			this.stars -= 1;
-			this.io.to(this.name).emit('star', revealed, this.stars);
-			this._roomState = 'awaitingFocus';
+
+			const roundComplete = this.players.every((p) => p.data.cards.length === 0);
+
+			this.io.to(this.name).emit('star', revealed, this.stars, roundComplete);
+
+			this.logger.info(`r:'${this.name}' star fired complete:${roundComplete}`);
+
+			if (roundComplete) {
+				this.completeRound();
+			} else {
+				this._roomState = 'awaitingFocus';
+			}
 		}
 	}
 
 	async cardPlayed(socket: MSocket): Promise<void> {
+		this.logger.info(`r:'${this.name}' player p:'${socket.id}' card played`);
+
 		if (this.roomState !== 'inGame') {
 			socket.emit('playCardFailure', 'not in game');
 			return;
@@ -173,25 +186,39 @@ export class Room {
 		if (allBustCards.length > 0) {
 			this._roomState = 'bust';
 			this.lives -= 1;
-			this.io.to(this.name).emit('bust', allBustCards, this.lives);
-
-			if (this.lives > 0) {
-				this._roomState = 'awaitingFocus';
-			} else {
+			const gameOver = this.lives === 0;
+			this.io.to(this.name).emit('bust', allBustCards, this.lives, gameOver);
+			if (gameOver) {
+				this.logger.info(`r:'${this.name}' bust - game over; returning to lobby`);
 				this._roomState = 'lobby';
+			} else {
+				this.logger.info(`r:'${this.name}' bust with lives left`);
+				this._roomState = 'awaitingFocus';
 			}
 		} else {
-			this.io.to(this.name).emit('playCardSuccess', {
-				id: socket.id,
-				card: played,
-			});
+			const roundComplete = this.players.every((p) => p.data.cards.length === 0);
 
-			if (this.players.every((p) => p.data.cards.length === 0)) {
-				this.io.to(this.name).emit('roundComplete');
-				this._roomState = 'lobby';
-				this.round += 1;
-				// TODO apply extra lives etc
+			this.io.to(this.name).emit(
+				'playCardSuccess',
+				{
+					id: socket.id,
+					card: played,
+				},
+				roundComplete,
+			);
+
+			if (roundComplete) {
+				this.completeRound();
 			}
 		}
+	}
+
+	completeRound(): void {
+		this.logger.info(`r:'${this.name} all cards played - round complete; returning to lobby`);
+		// this.io.to(this.name).emit('roundComplete');
+		this._roomState = 'lobby';
+		this.round += 1;
+		// TODO apply extra lives etc
+		this.sendRoomPosition();
 	}
 }
